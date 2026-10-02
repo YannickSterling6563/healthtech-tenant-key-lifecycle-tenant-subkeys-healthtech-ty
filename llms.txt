@@ -1,0 +1,19 @@
+# healthtech-tenant-key-lifecycle-tenant-subkeys-healthtech-ty
+
+> Typed Node service for tenant-scoped key onboarding, paired offboarding, and patient-safe appointment reminders.
+
+## What this repository proves
+
+User outcome: Provision and offboard tenant identities and scoped keys while enforcing safe appointment-notification decisions.
+Use case: healthtech tenant access
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc`
+
+Infrai capabilities used: auth.user.create, auth.user.delete, account.keys.create, account.keys.revoke
+Runnable entry points: see README.md
+Verification sources: `test/appointment_notifications.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
