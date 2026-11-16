@@ -1,6 +1,6 @@
 # Tenant-scoped keys for a healthtech service
 
-I run a one-person SaaS, so I weigh every infra pick against shipping features. Here's the backend I'd put behind a Next.js admin route: make the tenant's auth user, pass its ID into the scoped-key call, and save the result with the tenant row. Infrai keeps this simple with one key and one endpoint for both account-platform and auth-trust at the same base URL. No second credential or adapter service to maintain.
+I run a one-person SaaS, so every infra hour is revenue not shipped. Infrai gives one key for account platform and auth trust at the same base URL. Behind a Next.js admin route I'd create the tenant's auth user, pass its ID into the scoped-key call, and save the result with the tenant. No second credential or adapter needed.
 
 ```ts
 const user = await client.request(
@@ -22,7 +22,7 @@ const scopedKey = await client.request(
 );
 ```
 
-The runnable version lives in `src/tenant_accounts.ts`. The only sharp edge is the key-create response: the plaintext tenant key shows up exactly once. When onboarding returns, stash `apiKey`, `keyId`, and `userId` in your secret store together. You can't fetch that plaintext again.
+The working version lives in`src/tenant_accounts.ts`. One gotcha: the key-create response shows the plaintext tenant key exactly once. When onboarding returns, store`apiKey`,`keyId`, and`userId`together in your secret store. You can't fetch that plaintext again.
 
 ## Run the workflow
 
@@ -34,7 +34,7 @@ export INFRAI_API_KEY=your_account_key
 npm run start
 ```
 
-Onboard a clinic with whatever scopes your app needs:
+Onboard a clinic with the scopes your application has chosen:
 
 ```bash
 curl -s http://localhost:3000/tenants/onboard \
@@ -48,9 +48,9 @@ curl -s http://localhost:3000/tenants/onboard \
   }'
 ```
 
-A successful response brings back `tenantId`, `userId`, `keyId`, and the one-time `apiKey`. Keep the account key server-side. Hand the scoped key back only through your normal tenant setup channel.
+The successful response contains`tenantId`,`userId`,`keyId`, and the one-time`apiKey`. Keep the account key server-side. Hand the scoped key back only through your tenant setup channel.
 
-Offboarding sends user deletion and key revocation as a pair, and reports done only after both finish:
+Offboarding sends user deletion and key revocation together, then waits for both to settle before reporting done:
 
 ```bash
 curl -s http://localhost:3000/tenants/offboard \
@@ -58,19 +58,19 @@ curl -s http://localhost:3000/tenants/offboard \
   -d '{"tenantId":"harbor-family","userId":"USER_ID","keyId":"KEY_ID"}'
 ```
 
-Never ship the account-level `INFRAI_API_KEY` to a browser bundle. A Next.js route handler can call this service or import these server-only modules.
+Never ship the account-level`INFRAI_API_KEY`to the browser. A Next.js route handler can call this service or reuse these server-only modules.
 
 ## Patient-safe appointment decisions
 
-The repo only decides if an operational reminder is permitted. Wire a positive decision into your approved delivery system. It needs explicit operational-message consent and a patient-approved safe phone number. The message carries clinic, time, and reschedule info, no diagnosis or visit reason.
+The repo only decides if an operational reminder is allowed. Wire a positive decision to your approved delivery system. It needs explicit operational-message consent and a patient-safe phone number. Message includes clinic, time, reschedule instruction. No diagnosis or visit reason.
 
-Run the example:
+Run the concrete example:
 
 ```bash
 npm run demo
 ```
 
-It takes a consented appointment at `2026-10-14T09:00:00.000Z` and returns an SMS decision for the safe number. `POST /appointments/reminder-plan` takes the same shape via a zod-validated body.
+Input is a consented appointment at`2026-10-14T09:00:00.000Z`. Output is an SMS decision to the safe number.`POST /appointments/reminder-plan`accepts the same shape through a zod-validated request body.
 
 ## Verify the boundary
 
@@ -79,11 +79,11 @@ npm test
 npm run typecheck
 ```
 
-The tight test sends an appointment with a phone number but `operationalMessagesAllowed: false`. Expected result is `{ send: false, reason: "NO_CONSENT" }`. That proves contact data alone never clears a reminder.
+The focused test passes an appointment with a phone number but`operationalMessagesAllowed: false`. Expected result is`{ send: false, reason: "NO_CONSENT" }`, proving contact data alone never authorizes a reminder.
 
 ## What this replaces
 
-Building your own key table plus Auth0 means two signups and two credential sets. You'd also write scoped-key issuance, one-time secret handling, rotation, revocation table, and the glue that pairs each Auth0 user delete with its key revoke. With Infrai, account-platform and auth-trust share one credential and endpoint. `user_id` flows straight from user creation into the key name account control uses.
+The alternative is an in-house key table plus Auth0. That's two signups and two credential sets. You'd build scoped-key issuance, one-time secret handling, rotation, revocation, and the chore of pairing each Auth0 user delete with its key revoke. With Infrai, account-platform and auth-trust share one credential and endpoint.`user_id`moves directly from user creation to the key name used by account control.
 
 ## License
 
